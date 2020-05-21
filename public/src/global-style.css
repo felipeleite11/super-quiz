@@ -1,0 +1,42 @@
+html, body {
+	margin: 0;
+	padding: 0;
+	outline: 0;
+}
+
+body {
+	background-image: linear-gradient(to bottom right, #0d47a1 , #1565c0);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow-x: hidden;
+}
+
+.toastify {
+	background-color: #fff;
+	color: #242424;
+	font-family: 'Titillium Web', Arial, Helvetica, sans-serif, sans-serif;
+	width: 100%;
+	max-width: 100%;
+	padding: 12px 0;
+	display: flex;
+	justify-content: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	color: #fff;
+}
+
+.toastify .bold {
+	font-weight: 600;	
+	font-size: 20px;	
+}
+
+.toastify .large {
+	font-size: 22px;
+}
+
+.toastify .x-large {
+	font-size: 60px;
+	margin: 20px 0 0;
+}

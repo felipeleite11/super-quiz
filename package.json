@@ -1,0 +1,20 @@
+{
+  "name": "super-quiz",
+  "version": "1.0.0",
+  "description": "Jogo online de perguntas e respostas com múltipla escolha, implementado com NodeJS + ReactJS (standalone), utilizando Socket.IO.",
+  "main": "app.js",
+  "repository": "https://github.com/felipeleite11/super-quiz.git",
+  "author": "Felipe Leite",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  }
+}

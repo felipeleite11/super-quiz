@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Super Quiz MASTER</title>
+	<link rel="icon" type="image/png" href="favicon.ico">
+
+	<script type="text/javascript" src="socket.io/socket.io.js"></script>
+	<script src="libs/react.production.min.js"></script>
+	<script src="libs/react-dom.production.min.js"></script>
+	<script src="libs/babel.min.js"></script>
+	<script src="libs/react-is.production.min.js"></script>
+	<script src="libs/styled-components.min.js"></script>
+	<script src="src/styles.js"></script>
+	<script src="src/header-style.js"></script>
+	<script src="src/footer-style.js"></script>
+	<script src="src/question-style.js"></script>
+	<script src="src/question-control-style.js"></script>
+	<script src="src/player-list-style.js"></script>
+	<script src="src/round-style.js"></script>
+	<script src="src/toast.js"></script>
+
+	<link rel="stylesheet" href="libs/animate.css" />
+	<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@200;300;400;600&family=Titillium+Web:wght@200;400;600;700;900&display=swap" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+	<link rel="stylesheet" type="text/css" href="src/global-style.css" />
+</head>
+<body>
+	
+	<div id="app"></div>
+
+
+	<script type="text/babel">
+		const victorySound = new Audio('assets/clap.ogg')
+
+		class Game extends React.Component {
+			constructor(props) {
+				super(props)
+
+				this.socket = io.connect()
+
+				this.state = {
+					roomName: 'Célula Revolução I',
+					players: [],
+					question: null,
+					enableStartGame: false,
+					replies: [],
+					highlightPlayer: null,
+					round: 0,
+					roundLimit: 1
+				}
+			}
+
+			componentDidMount() {
+				this.socket.on('connect', () => {
+					showToast(`<p class="bold">Bem-vindo à ${this.state.roomName}</p><p>Você é o MASTER!</p>`, 500, null, 800)
+
+					this.socket.emit('im-master')
+				})
+
+				this.socket.on('players', (players, highlightPlayer) => {
+					console.log(players)
+
+					this.setState({ 
+						players,
+						highlightPlayer
+					})
+				})
+
+				this.socket.on('next', question => {
+					this.setState({ 
+						question,
+						replies: [],
+						highlightPlayer: null
+					})
+				})
+
+				this.socket.on('reply', reply => {
+					const { replies } = this.state
+
+					this.setState({ replies: [...replies, reply] })
+
+					console.log('Nova resposta:', [...replies, reply])
+				})
+
+				this.socket.on('enable-start-game', () => {
+					this.setState({ enableStartGame: true })
+				})
+
+				this.socket.on('set-round-limit', limit => {
+					this.setState({ roundLimit: limit })
+				})
+
+				this.socket.on('game-over', winners => {
+					victorySound.play().then().catch(e => console.error(e))
+					
+					this.setState({
+						question: null,
+						replies: [],
+						highlightPlayer: null,
+						round: 0,
+						roundLimit: 1
+					})
+
+					console.log('Winners', winners)
+
+					showToast(`<p class="x-large">🏆</p><p class="large">Vencedor${winners.length > 1 ? 'es' : ''}: ${winners.map(player => player.name).join(' | ')}</p>`, 10000, '#ffb74d')
+				})
+			}
+			
+			next = () => {
+				this.socket.emit('get-next')
+			}
+
+			testConnection = () => {
+				this.socket.emit('test-connection')
+			}
+
+			setRound = round => {
+				if(round < 0 || round > this.state.roundLimit) {
+					return
+				}
+
+				this.setState({ round })
+				this.socket.emit('set-round', round)
+			}
+
+			render() {
+				const { roomName, question, players, enableStartGame, highlightPlayer, round } = this.state
+
+				return (
+					<Container>						
+						<Header>
+							<AppName>
+								<img src="logo.png" alt="" />
+							</AppName>
+							
+							<GameDataContainer>
+								<RoomName>
+									<span>Sala: {roomName}</span>
+									<span>({players.length} pessoas)</span>	
+								</RoomName>
+								<PlayerName>Master</PlayerName>
+							</GameDataContainer>
+						</Header>
+
+						{!enableStartGame && (
+							<Button onClick={this.testConnection}>
+								<span className="emoji">📢 👂</span>
+								<span className="bold">Testar conexão</span>
+							</Button>
+						)}
+
+						<RoundContainer>
+							<button onClick={() => this.setRound(round - 1)}>⇚</button>
+							<span>Round {round + 1}</span>
+							<button onClick={() => this.setRound(round + 1)}>⇛</button>
+						</RoundContainer>
+
+						{enableStartGame ? (
+							<QuestionContainer>
+								{question ? (
+									<Question dificulty={question?.dificulty}>
+										{question.id} - {question?.question}
+									</Question>
+								) : (
+									<WaitMessage>
+										Clique para começar
+									</WaitMessage>
+								)}
+
+								<QuestionControl>
+									<button onClick={this.next}>👉</button>
+								</QuestionControl>
+
+							</QuestionContainer>
+						) : (
+							<DisableStartGame>Para começar, todos os participantes devem inserir um nome.</DisableStartGame>
+						)}
+
+						<PlayerList>
+							<h1>Ranking</h1>
+
+							{players.length > 0 ? players.map(player => (
+								<PlayerListItem 
+									key={player.id} 
+									className={highlightPlayer && highlightPlayer.socket === player.socket ? 'animate__flash' : ''}
+								>
+									<span>{player.name || '-'}</span>
+									<span>{player.score ?? 0}pts</span>
+								</PlayerListItem>
+							)) : (
+								<p>Ninguém entrou ainda</p>
+							)}
+						</PlayerList>
+
+						<Footer>
+							<span>Developed by </span>
+							<a href="https://www.linkedin.com/in/felipe-leite-a96374109/">Felipe Leite</a>
+						</Footer>
+					</Container>
+				)
+			}
+		}
+
+		ReactDOM.render(<Game />, document.querySelector('#app'))
+	</script>
+
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+</body>
+</html>

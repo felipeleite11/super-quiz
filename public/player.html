@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Super Quiz</title>
+	<link rel="icon" type="image/png" href="favicon.ico">
+
+	<script type="text/javascript" src="socket.io/socket.io.js"></script>
+	<script src="libs/react.production.min.js"></script>
+	<script src="libs/react-dom.production.min.js"></script>
+	<script src="libs/babel.min.js"></script>
+	<script src="libs/react-is.production.min.js"></script>
+	<script src="libs/styled-components.min.js"></script>
+	<script src="src/styles.js"></script>
+	<script src="src/header-style.js"></script>
+	<script src="src/footer-style.js"></script>
+	<script src="src/question-style.js"></script>
+	<script src="src/player-list-style.js"></script>
+	<script src="src/toast.js"></script>
+	<script type="text/babel" src="src/progress-bar.js"></script>
+
+	<link rel="stylesheet" href="libs/animate.css" />
+	<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@200;300;400;600&family=Titillium+Web:wght@200;400;600;700;900&display=swap" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+	<link rel="stylesheet" type="text/css" href="src/global-style.css" />
+</head>
+<body>
+	
+	<div id="app"></div>
+
+
+	<script type="text/babel">
+		const successSound = new Audio('assets/success.ogg')
+		const errorSound = new Audio('assets/error.ogg')
+		const victorySound = new Audio('assets/clap.ogg')
+		let replyTimeout
+		let progressInterval
+
+		class Game extends React.Component {
+			constructor(props) {
+				super(props)
+
+				this.socket = io.connect()
+
+				this.state = {
+					roomName: 'Célula Revolução I',
+					players: [],
+					name: '',
+					player: {
+						name: null
+					},
+					question: null,
+					highlighCorrect: false,
+					answered: false,
+					replyIndex: null,
+					highlightPlayer: null,
+					timeover: false,
+					timeoverProgress: 0
+				}
+			}
+
+			componentDidMount() {
+				document.querySelector('#name').addEventListener('keyup', e => {
+					if(e.keyCode === 13) {
+						this.setName()
+					}
+				})
+
+				this.socket.on('connect', () => {
+					showToast(`<p class="bold">Bem-vindo à ${this.state.roomName}</p><p>Você está dentro!</p>`, 500, null, 800)
+				})
+
+				this.socket.on('players', (players, highlightPlayer) => {
+					this.setState({ 
+						players,
+						highlightPlayer
+					})
+				})
+
+				this.socket.on('next', question => {
+					if(!this.state.player.name) {
+						showToast(`<p class="bold">O jogo começou!</p><p>Escreva seu nome para entrar!</p>`, 500, null, 800)
+						return
+					}
+
+					this.setState({ 
+						question, 
+						highlighCorrect: false,
+						answered: false,
+						replyIndex: null,
+						timeover: false,
+						timeoverProgress: 0
+					})
+
+					progressInterval = setInterval(() => {
+						const { timeoverProgress } = this.state
+
+						if(timeoverProgress <= 100) {
+							this.setState(prev => ({ timeoverProgress: prev.timeoverProgress + 1 }))
+						}
+
+						if(timeoverProgress >= 100) {
+							clearInterval(progressInterval)
+						}
+					}, (question.timeover * 1000) / 100)
+
+					replyTimeout = setTimeout(() => {
+						this.setState({ timeover: true })
+
+						showToast(`<p class="bold">Fim do tempo!</p><p>Seja mais rápido na próxima!</p>`, 1600, '#f44336')
+					}, question.timeover * 1000)
+				})
+
+				this.socket.on('master-offline', () => {
+					showToast(`<p class="bold">Opa!</p><p>O administrador do jogo saiu!</p>`)
+				})
+
+				this.socket.on('master', () => {
+					showToast(`<p class="bold">O administrador entrou</p><p>Tudo certo para começar!</p>`)
+				})
+
+				this.socket.on('correct', ({ score }) => {
+					successSound.play().then().catch(e => console.error(e))
+
+					showToast(`<p class="bold">💡 Acertou!</p><p>Pontuação atual: ${score}</p>`, null, '#66bb6a')
+				})
+
+				this.socket.on('incorrect', ({ score }) => {
+					errorSound.play().then().catch(e => console.error(e))
+
+					showToast(`<p class="bold">💣 Errou!</p><p>Pontuação atual: ${score}</p>`, null, '#f44336')
+				})
+
+				this.socket.on('game-over', winners => {
+					this.setState({ 
+						question: null,
+						highlighCorrect: false,
+						answered: false,
+						replyIndex: null,
+						highlightPlayer: null,
+						timeover: false,
+						timeoverProgress: 0
+					})
+
+					victorySound.play().then().catch(e => console.error(e))
+
+					showToast(`<p class="x-large">🏆</p><p class="large">Vencedor${winners.length > 1 ? 'es' : ''}: ${winners.map(player => player.name).join(' | ')}</p>`, 10000, '#ffb74d')
+				})
+
+				this.socket.on('test-connection', () => {
+					showToast('Sua conexão tá OK!', 1500, '#66bb6a')
+				})
+			}
+
+			answer = id => {
+				const { answered, timeover } = this.state
+
+				if(answered) {
+					showToast('Você já respondeu essa!', 700)
+					return
+				}
+
+				if(timeover) {
+					showToast('Seu tempo já acabou!', 700)
+					return
+				}
+
+				clearInterval(progressInterval)
+				clearTimeout(replyTimeout)
+
+				this.setState({ 
+					highlighCorrect: true,
+					answered: true,
+					replyIndex: id
+				})
+
+				this.socket.emit('answer', id)
+			}
+
+			setName = () => {
+				const { name } = this.state
+
+				if(!name) {
+					showToast(`<p class="bold">😉 Escreva seu nome para começar</p>`, null, '#f44336')
+					return
+				}
+
+				this.setState({ player: { name } })
+				this.socket.emit('im-player', name)
+			}
+
+			render() {
+				const { roomName, player, question, players, highlighCorrect, replyIndex, highlightPlayer, timeover, timeoverProgress } = this.state
+
+				return (
+					<Container>						
+						<Header>
+							<AppName>
+								<img src="logo.png" alt="" />
+							</AppName>
+							
+							<GameDataContainer>
+								<RoomName>
+									<span>Sala: {roomName}</span>
+									<span>({players.length} pessoas)</span>	
+								</RoomName>
+								<PlayerName>
+									<span>Nome: </span>
+									{player.name || (
+										<>
+											<input type="text" id="name" onChange={e => this.setState({ name: e.target.value })} />
+											<button onClick={this.setName}>OK</button>
+										</>
+									)}
+								</PlayerName>
+							</GameDataContainer>
+						</Header>
+
+						<QuestionContainer>
+							{question ? (
+								<>
+									<ProgressBar progress={timeoverProgress} />
+
+									<Question>
+										{question.id} - {question?.question}
+									</Question>
+								</>
+							) : (
+								<WaitMessage>
+									{player.name ? (
+										<span>Aguarde...</span>
+									) : (
+										<span>☝<br />Insira seu nome acima, aperte OK e aguarde...</span>
+									)}
+								</WaitMessage>
+							)}
+
+							<AlternativesContainer>
+								{question?.alternatives.map((alternative, i) => (
+									<Button 
+										key={alternative.id} 
+										type={alternative.type}
+										disabled={timeover}
+										onClick={() => this.answer(alternative.id)}
+										className={
+											highlighCorrect && replyIndex === alternative.id ? 
+												(alternative.correct ? 'correct' : 'incorrect') 
+												: null
+											}
+									>
+										{alternative.content}
+									</Button>
+								))}
+							</AlternativesContainer>
+
+						</QuestionContainer>
+						
+						<PlayerList>
+							<h1>Ranking</h1>
+
+							{players.length > 0 ? players.map(player => (
+								<PlayerListItem 
+									key={player.id}
+									className={highlightPlayer && highlightPlayer.socket === player.socket ? 'animate__flash' : ''}
+								>
+									<span>{player.name || '-'}</span>
+									<span>{player.score ?? 0}pts</span>
+								</PlayerListItem>
+							)) : (
+								<p>Ninguém entrou ainda</p>
+							)}
+						</PlayerList>
+
+						<Footer>
+							<span>Developed by </span>
+							<a href="https://www.linkedin.com/in/felipe-leite-a96374109/">Felipe Leite</a>
+						</Footer>
+					</Container>
+				)
+			}
+		}
+
+		ReactDOM.render(<Game />, document.querySelector('#app'))
+	</script>
+
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+</body>
+</html>
