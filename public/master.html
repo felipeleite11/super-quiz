@@ -20,6 +20,7 @@
 	<script src="src/player-list-style.js"></script>
 	<script src="src/round-style.js"></script>
 	<script src="src/toast.js"></script>
+	<script src="src/animation.js"></script>
 
 	<link rel="stylesheet" href="libs/animate.css" />
 	<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@200;300;400;600&family=Titillium+Web:wght@200;400;600;700;900&display=swap" rel="stylesheet">
@@ -33,6 +34,7 @@
 
 	<script type="text/babel">
 		const victorySound = new Audio('assets/clap.ogg')
+		let replyTimeInterval
 
 		class Game extends React.Component {
 			constructor(props) {
@@ -48,7 +50,8 @@
 					replies: [],
 					highlightPlayer: null,
 					round: 0,
-					roundLimit: 1
+					roundLimit: 1,
+					replyTime: 0
 				}
 			}
 
@@ -72,8 +75,19 @@
 					this.setState({ 
 						question,
 						replies: [],
-						highlightPlayer: null
+						highlightPlayer: null,
+						replyTime: question.timeover * 1000
 					})
+
+					applyTempAnimation(document.querySelector('.question'), 'animate__bounceIn')
+
+					replyTimeInterval = setInterval(() => {
+						this.setState({ replyTime: this.state.replyTime - 1000 })
+
+						if(this.state.replyTime <= 0) {
+							clearInterval(replyTimeInterval)
+						}
+					}, 1000)
 				})
 
 				this.socket.on('reply', reply => {
@@ -86,10 +100,28 @@
 
 				this.socket.on('enable-start-game', () => {
 					this.setState({ enableStartGame: true })
+
+					applyTempAnimation(document.querySelector('.wait-message'), 'animate__rubberBand')
 				})
 
 				this.socket.on('set-round-limit', limit => {
 					this.setState({ roundLimit: limit })
+				})
+
+				this.socket.on('already-answered', () => {
+					clearInterval(replyTimeInterval)
+					
+					this.setState({ replyTime: 0 })
+
+					showToast(`<p class="bold">Todos já responderam</p>`, 1200, '#1565c0')
+				})
+
+				this.socket.on('all-correct', () => {
+					clearInterval(replyTimeInterval)
+					
+					this.setState({ replyTime: 0 })
+
+					showToast(`<p class="bold">Todos acertaram!</p>`, null, '#66bb6a')
 				})
 
 				this.socket.on('game-over', winners => {
@@ -127,7 +159,7 @@
 			}
 
 			render() {
-				const { roomName, question, players, enableStartGame, highlightPlayer, round } = this.state
+				const { roomName, question, players, enableStartGame, highlightPlayer, round, replyTime } = this.state
 
 				return (
 					<Container>						
@@ -170,8 +202,12 @@
 									</WaitMessage>
 								)}
 
+								{replyTime > 0 && (
+									<Timeover>{`${replyTime / 1000}s`}</Timeover>
+								)}
+
 								<QuestionControl>
-									<button onClick={this.next}>👉</button>
+									<button disabled={replyTime > 0} onClick={this.next}>👉</button>
 								</QuestionControl>
 
 							</QuestionContainer>

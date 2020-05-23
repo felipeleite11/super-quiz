@@ -1,7 +1,10 @@
-const Bar = styled.div`
+const Bar = styled.div.attrs({
+	className: 'progress-bar'
+})`
 	width: 80%;
 	background-color: #ddd;
 	border-radius: 10px;
+	margin-top: 20px;
 `
 
 const Progress = styled.div`

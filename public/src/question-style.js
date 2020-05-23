@@ -15,7 +15,9 @@ const hoverShadow = css`
 	box-shadow: 0 16px 24px 2px rgba(0,0,0,0.14), 0 6px 30px 5px rgba(0,0,0,0.12), 0 8px 10px -7px rgba(0,0,0,0.2);
 `
 
-const QuestionContainer = styled.div`
+const QuestionContainer = styled.div.attrs({
+	className: 'question-container animate__animated'
+})`
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -25,7 +27,7 @@ const QuestionContainer = styled.div`
 `
 
 const Question = styled.div.attrs({
-	className: 'animate__animated animate__bounceIn animate__faster'
+	className: 'question animate__animated'
 })`
 	font-size: 18px;
 	font-weight: 400;
@@ -36,7 +38,7 @@ const Question = styled.div.attrs({
 `
 
 const WaitMessage = styled.div.attrs({
-	className: 'animate__animated animate__rubberBand'
+	className: 'wait-message animate__animated'
 })`
 	font-size: 26px;
 	color: #fff;
@@ -48,7 +50,9 @@ const WaitMessage = styled.div.attrs({
 	margin: 14px 30px 0;
 `
 
-const AlternativesContainer = styled.div`
+const AlternativesContainer = styled.div.attrs({
+	className: 'alternatives-container'
+})`
 	width: 100%;
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -72,8 +76,15 @@ const AlternativesContainer = styled.div`
 	}
 `
 
+const Timeover = styled.span`
+	color: #fff;
+	font-size: 40px;
+	text-align: center;
+	width: 100%;
+`
+
 const Button = styled.button.attrs({
-	className: 'animate__animated animate__bounceIn'
+	className: 'animate__animated'
 })`
 	border-radius: 8px;
 	padding: 10px;
@@ -87,6 +98,8 @@ const Button = styled.button.attrs({
 	transition: box-shadow 0.3s;
 	font-size: ${props => props.type === 'emoji' ? '40px' : '14px' };
 	outline: 0;
+	font-weight: 700;
+	background-color: ${props => props.highlightCorrectAlternative ? '#66bb6a' : '#fff'};
 	${shadow}
 
 	&:hover {

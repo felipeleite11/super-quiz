@@ -10,7 +10,7 @@ const socketIO = require('socket.io')
 
 const io = socketIO.listen(server)
 
-server.listen(3000, () => console.log('Executando...'))
+server.listen(3000, () => console.log('Executando em http://localhost:3000/master http://localhost:3000/test'))
 
 app.use(express.static(__dirname + '/public'))
 
@@ -27,6 +27,7 @@ let players = []
 let correctRepliesCount = -1
 let questionIndex = -1
 let round = 0
+let repliesCount = 0
 
 function getNextQuestion() {
 	questionIndex++
@@ -104,6 +105,8 @@ io.on('connection', socket => {
 		const correctAlternative = currentQuestion.alternatives.find(a => a.correct)
 		const isCorrect = reply === correctAlternative.id
 		const player = players.find(player => player.socket === socket.id)
+		
+		repliesCount++
 
 		io.to(master.socket).emit('reply', { 
 			player,
@@ -132,7 +135,17 @@ io.on('connection', socket => {
 
 			correctRepliesCount++
 
+			if(repliesCount === players.length) {
+				const allCorrect = correctRepliesCount === repliesCount
+
+				io.to(master.socket).emit(allCorrect ? 'all-correct' : 'already-answered')
+			}
+
 			return
+		}
+
+		if(repliesCount === players.length) {
+			io.to(master.socket).emit('already-answered')
 		}
 
 		socket.emit('incorrect', player)
@@ -143,6 +156,7 @@ io.on('connection', socket => {
 	socket.on('get-next', () => {
 		console.log('Zerando contador de respostas...')
 		correctRepliesCount = 0
+		repliesCount = 0
 
 		const next = getNextQuestion()
 
