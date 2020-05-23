@@ -62,6 +62,7 @@ const GameDataContainer = styled.div`
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-end;
+	width: 90%;
 
 	h2, h3 {
 		margin: 0;

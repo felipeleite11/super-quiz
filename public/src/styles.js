@@ -2,7 +2,7 @@ const styled = window.styled
 const css = styled.css
 
 const Container = styled.div.attrs({
-	className: 'animate__animated animate__fadeIn animate__fast'
+	className: 'animate__animated animate__bounce animate__fast'
 })`
 	min-height: 100vh;
 	width: 100%;

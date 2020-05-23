@@ -22,7 +22,6 @@ const QuestionContainer = styled.div.attrs({
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	margin: 0 20px;
 	width: 100%;
 `
 
@@ -35,6 +34,7 @@ const Question = styled.div.attrs({
 	font-family: 'Titillium Web', Arial, Helvetica, sans-serif, sans-serif;
 	padding: 14px 18px;
 	margin: 20px 0;
+	text-align: center;
 `
 
 const WaitMessage = styled.div.attrs({
@@ -95,6 +95,7 @@ const Button = styled.button.attrs({
 	border: none;
 	cursor: pointer;
 	min-height: 80px;
+	min-width: 80px;
 	transition: box-shadow 0.3s;
 	font-size: ${props => props.type === 'emoji' ? '40px' : '14px' };
 	outline: 0;

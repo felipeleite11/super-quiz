@@ -1,8 +1,9 @@
 const PlayerList = styled.div`
 	display: flex;
 	flex-direction: column;
-	width: 100%;
-    margin: 30px 20px 0;
+	width: 90%;
+	margin-top: 30px;
+	padding: 18px;
 
 	h1 {
 		font-size: 20px;
@@ -30,6 +31,7 @@ const PlayerListItem = styled.div.attrs({
     color: #242424;
     font-weight: 600;
 	margin-bottom: 6px;
+	width: calc(100% - 32px);
 
 	span:first-child {
 		font-weight: 700;
