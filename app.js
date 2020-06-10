@@ -10,7 +10,7 @@ const socketIO = require('socket.io')
 
 const io = socketIO.listen(server)
 
-server.listen(3000, () => console.log('Executando em http://localhost:3000/master http://localhost:3000/test'))
+server.listen(3000, () => console.log('Executing in port 3000'))
 
 app.use(express.static(__dirname + '/public'))
 
